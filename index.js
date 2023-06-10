@@ -1,4 +1,4 @@
-const express =require('express')
+const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000
 
@@ -12,7 +12,7 @@ require('dotenv').config()
 app.use(cors())
 app.use(express.json())
 
-console.log(process.env.USER_NAME ,  process.env.USER_PASS)
+// console.log(process.env.USER_NAME ,  process.env.USER_PASS)
 
 
 
@@ -34,8 +34,37 @@ async function run() {
     await client.connect();
 
     const userCollection = client.db('musicInstrument').collection('users')
+    const classCollection = client.db('musicInstrument').collection('classes')
 
 
+
+    app.put('/users/:email', async (req, res) => {
+      const email = req.params.email
+      const user = req.body
+      const filter = { email: email }
+      const options = { upsert: true }
+      const updateDoc = {
+        $set: user
+      }
+
+      const result = await userCollection.updateOne(filter, updateDoc, options)
+      res.send(result)
+
+    })
+
+    // get all user
+    app.get('/allUser', async (req, res) => {
+      const result = await userCollection.find().toArray()
+      res.send(result)
+    })
+
+    // add class
+
+    app.post('/class', async (req, res) => {
+      const classes = req.body
+      const result = await classCollection.insertOne(classes)
+      res.send(result)
+    })
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
@@ -48,10 +77,10 @@ async function run() {
 run().catch(console.dir);
 
 
-app.get('/', (req, res)=>{
-    res.send('Here is all about music learning instrument')
+app.get('/', (req, res) => {
+  res.send('Here is all about music learning instrument')
 })
 
-app.listen(port, ()=>{
-    console.log(`Music instrument learning server in on Port ${port}` )
+app.listen(port, () => {
+  console.log(`Music instrument learning server in on Port ${port}`)
 })

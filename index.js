@@ -1,18 +1,37 @@
+require('dotenv').config()
 const express = require('express')
 const app = express()
 const port = process.env.PORT || 5000
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 const cors = require('cors')
 const jwt = require('jsonwebtoken')
-require('dotenv').config()
 
 
 app.use(cors())
 app.use(express.json())
 
 // console.log(process.env.USER_NAME ,  process.env.USER_PASS)
+
+const verifyJwt = (req, res, next) => {
+  const authorization = req.headers.authorization
+  if (!authorization) {
+    return res.status(401).send({ error: true, message: 'unAuthorization access' })
+  }
+
+  const token = authorization.split(' ')[1]
+
+  jwt.verify(token, process.env.USER_SECRET, (error, decoded) => {
+    if (error) {
+      return res.status(401).send({ error: true, message: "unAuthorization access" })
+    }
+
+    req.decoded = decoded
+
+    next()
+  })
+}
 
 
 
@@ -35,6 +54,7 @@ async function run() {
 
     const userCollection = client.db('musicInstrument').collection('users')
     const classCollection = client.db('musicInstrument').collection('classes')
+    const popularClassCollection = client.db('musicInstrument').collection('popularClass')
 
 
 
@@ -52,11 +72,22 @@ async function run() {
 
     })
 
+    app.post('/jwt', async (req, res) => {
+      const user = req.body
+      const token = jwt.sign(user, process.env.USER_SECRET, {
+        expiresIn: '10h'
+      })
+
+      res.send({ token })
+    })
+
     // get all user
     app.get('/allUser', async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result)
     })
+
+
 
     // add class
 
@@ -65,6 +96,65 @@ async function run() {
       const result = await classCollection.insertOne(classes)
       res.send(result)
     })
+
+    app.get('/class', verifyJwt, async (req, res) => {
+      const result = await classCollection.find().toArray()
+      res.send(result)
+    })
+
+    // modify class
+    app.patch('/allClass/:id', async (req, res) => {
+      const id = req.params.id
+      const user = req.body
+      const query = { _id: new ObjectId(id) }
+      const updateDoc = {
+        $set: user
+      }
+
+      const result = await classCollection.updateOne(query, updateDoc)
+      res.send(result)
+
+    })
+
+    app.put('/selected/class/:id', async(req, res)=>{
+      const id = req.params.id
+      const user = req.body
+      const filter = {_id: new ObjectId(id)}
+      const option = {upsert : true}
+      const updateDoc ={
+        $set: user
+      }
+      const result = await popularClassCollection.updateOne(filter,updateDoc, option)
+      res.send(result)
+    })
+
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      if (user?.role !== 'Admin') {
+        return res.status(403).send({ error: true, message: 'access forbidden' })
+      }
+
+      next()
+    }
+
+
+    // admin api
+    app.get('/users/admin/:email', verifyJwt, verifyAdmin, async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      if (req.decoded.email !== email) {
+        return res.send({ admin: false })
+      }
+
+      const user = await userCollection.findOne(query)
+      const result = { admin: user?.role === 'Admin' }
+      res.send(result)
+
+    })
+
+
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });

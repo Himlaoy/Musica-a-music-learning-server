@@ -54,7 +54,7 @@ async function run() {
 
     const userCollection = client.db('musicInstrument').collection('users')
     const classCollection = client.db('musicInstrument').collection('classes')
-    const popularClassCollection = client.db('musicInstrument').collection('popularClass')
+    const studentsCollection = client.db('musicInstrument').collection('students')
 
 
 
@@ -87,6 +87,17 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/user/popular', async (req, res) => {
+      const query = { role: "Instructor" }
+      // const option = {
+      //   sort:{"booked": -1}
+      // }
+
+      const result = await userCollection.find(query).limit(6).toArray()
+      res.send(result)
+
+    })
+
 
 
     // add class
@@ -97,7 +108,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/class', verifyJwt, async (req, res) => {
+    app.get('/class', async (req, res) => {
       const result = await classCollection.find().toArray()
       res.send(result)
     })
@@ -116,17 +127,31 @@ async function run() {
 
     })
 
-    app.put('/selected/class/:id', async(req, res)=>{
+    // selection the class
+    app.put('/selected/class/:id', async (req, res) => {
       const id = req.params.id
       const user = req.body
-      const filter = {_id: new ObjectId(id)}
-      const option = {upsert : true}
-      const updateDoc ={
+      const filter = { _id: new ObjectId(id) }
+      const option = { upsert: true }
+      const updateDoc = {
         $set: user
       }
-      const result = await popularClassCollection.updateOne(filter,updateDoc, option)
+      const result = await classCollection.updateOne(filter, updateDoc, option)
       res.send(result)
     })
+
+    // sort the class
+    app.get('/class/booked', async (req, res) => {
+      const query = {}
+      const option = {
+        sort: { "booked": -1 }
+      }
+      const result = await classCollection.find(query, option).limit(6).toArray()
+      res.send(result)
+
+    })
+
+
 
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email
@@ -141,7 +166,7 @@ async function run() {
 
 
     // admin api
-    app.get('/users/admin/:email', verifyJwt, verifyAdmin, async (req, res) => {
+    app.get('/users/admin/:email', verifyJwt,  async (req, res) => {
       const email = req.params.email
       const query = { email: email }
       if (req.decoded.email !== email) {
@@ -152,6 +177,57 @@ async function run() {
       const result = { admin: user?.role === 'Admin' }
       res.send(result)
 
+    })
+
+    // instructor api
+    app.get('/users/instructor/:email', verifyJwt,  async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      if (req.decoded.email !== email) {
+        return res.send({ instructor: false })
+      }
+
+      const user = await userCollection.findOne(query)
+      const result = { instructor: user?.role === 'Instructor' }
+      res.send(result)
+
+    })
+    
+    // student api
+    app.get('/users/students/:email', verifyJwt,  async (req, res) => {
+      const email = req.params.email
+      const query = { email: email }
+      if (req.decoded.email !== email) {
+        return res.send({ student: false })
+      }
+
+      const user = await userCollection.findOne(query)
+      const result = { student: user?.role === 'student' }
+      res.send(result)
+
+    })
+
+    // student api
+    app.post('/students', async (req, res) => {
+      const favClass = req.body
+      const result = await studentsCollection.insertOne(favClass)
+      res.send(result)
+    })
+
+    // get selected class
+    app.get('/student/favClass/:email', async(req, res)=>{
+      const email = req.params.email
+      const query = {email: email}
+      const result = await studentsCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    // delete selected class
+    app.delete('/students/:id', async(req, res)=>{
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await studentsCollection.deleteOne(query)
+      res.send(result)
     })
 
 

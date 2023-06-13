@@ -1,6 +1,7 @@
 require('dotenv').config()
 const express = require('express')
 const app = express()
+const stripe = require('stripe')(process.env.PAYMENT_GETWAY_SECRET)
 const port = process.env.PORT || 5000
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -50,7 +51,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
 
     const userCollection = client.db('musicInstrument').collection('users')
     const classCollection = client.db('musicInstrument').collection('classes')
@@ -82,7 +83,13 @@ async function run() {
     })
 
     // get all user
-    app.get('/allUser', async (req, res) => {
+    app.get('/instructor', async (req, res) => {
+      const query = { role: 'Instructor' }
+      const result = await userCollection.find(query).toArray()
+      res.send(result)
+    })
+
+    app.get('/allUsers', async(req, res)=>{
       const result = await userCollection.find().toArray()
       res.send(result)
     })
@@ -108,8 +115,15 @@ async function run() {
       res.send(result)
     })
 
+    // get class
     app.get('/class', async (req, res) => {
       const result = await classCollection.find().toArray()
+      res.send(result)
+    })
+
+    app.get('/approve/class', async(req, res)=>{
+      const query = {status: 'Approve'}
+      const result = await classCollection.find(query).toArray()
       res.send(result)
     })
 
@@ -125,6 +139,15 @@ async function run() {
       const result = await classCollection.updateOne(query, updateDoc)
       res.send(result)
 
+    })
+
+    // get a class by instructor to update single class
+
+    app.get('/dashboard/updateClass/:id', async(req, res)=>{
+      const id = req.params.id
+      const query = {_id: new ObjectId(id)}
+      const result = await classCollection.findOne(query)
+      res.send(result)
     })
 
     // selection the class
@@ -166,7 +189,7 @@ async function run() {
 
 
     // admin api
-    app.get('/users/admin/:email', verifyJwt,  async (req, res) => {
+    app.get('/users/admin/:email', verifyJwt, async (req, res) => {
       const email = req.params.email
       const query = { email: email }
       if (req.decoded.email !== email) {
@@ -180,7 +203,7 @@ async function run() {
     })
 
     // instructor api
-    app.get('/users/instructor/:email', verifyJwt,  async (req, res) => {
+    app.get('/users/instructor/:email', verifyJwt, async (req, res) => {
       const email = req.params.email
       const query = { email: email }
       if (req.decoded.email !== email) {
@@ -192,9 +215,9 @@ async function run() {
       res.send(result)
 
     })
-    
+
     // student api
-    app.get('/users/students/:email', verifyJwt,  async (req, res) => {
+    app.get('/users/students/:email', verifyJwt, async (req, res) => {
       const email = req.params.email
       const query = { email: email }
       if (req.decoded.email !== email) {
@@ -215,20 +238,37 @@ async function run() {
     })
 
     // get selected class
-    app.get('/student/favClass/:email', async(req, res)=>{
+    app.get('/student/favClass/:email', async (req, res) => {
       const email = req.params.email
-      const query = {email: email}
+      const query = { email: email }
       const result = await studentsCollection.find(query).toArray()
       res.send(result)
     })
 
     // delete selected class
-    app.delete('/students/:id', async(req, res)=>{
+    app.delete('/students/:id', async (req, res) => {
       const id = req.params.id
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await studentsCollection.deleteOne(query)
       res.send(result)
     })
+
+
+    // payment api
+    app.post("/create-payment-intent", verifyJwt, async (req, res) => {
+      const { price } = req.body
+      const amount = parseInt(price * 100)
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: 'usd',
+        payment_method_types: ['card']
+      })
+      res.send({
+        clientSecret: paymentIntent.client_secret
+      })
+
+    })
+
 
 
 

@@ -56,6 +56,8 @@ async function run() {
     const userCollection = client.db('musicInstrument').collection('users')
     const classCollection = client.db('musicInstrument').collection('classes')
     const studentsCollection = client.db('musicInstrument').collection('students')
+    const paymentsCollection = client.db('musicInstrument').collection('payments')
+    const paymentsSuccessCollection = client.db('musicInstrument').collection('paymentsSuccess')
 
 
 
@@ -268,6 +270,36 @@ async function run() {
       })
 
     })
+
+    app.post('/payments', verifyJwt, async(req, res)=>{
+      const payments = req.body
+      const insertResult = await paymentsCollection.insertOne(payments)
+
+      const query = {_id :{ $in: payments.favClassId.map(id=>new ObjectId(id))}}
+      const deleteResult = await studentsCollection.deleteMany(query)
+
+      res.send({insertResult, deleteResult})
+    })
+
+    app.post('/payments/success', verifyJwt, async(req, res)=>{
+      const payments = req.body
+      const insertOne = await paymentsSuccessCollection.insertOne(payments)
+      res.send(insertOne)
+    })
+
+    app.get('/paySuccess/class/:email', async(req, res)=>{
+      const email = req.params.email
+
+      const query = {email: email}
+      const result = await paymentsSuccessCollection.find(query).toArray()
+      res.send(result)
+    } )
+
+    app.get('/paySuccess/AllClass', async(req, res)=>{
+
+      const result = await paymentsSuccessCollection.find().sort({date: -1}).toArray()
+      res.send(result)
+    } )
 
 
 

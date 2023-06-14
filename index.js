@@ -84,6 +84,18 @@ async function run() {
       res.send({ token })
     })
 
+    // verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email
+      const query = { email: email }
+      const user = await userCollection.findOne(query)
+      if (user?.role !== 'Admin') {
+        return res.status(403).send({ error: true, message: 'access forbidden' })
+      }
+
+      next()
+    }
+
     // get all user
     app.get('/instructor', async (req, res) => {
       const query = { role: 'Instructor' }
@@ -91,7 +103,7 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/allUsers', async(req, res)=>{
+    app.get('/allUsers', async (req, res) => {
       const result = await userCollection.find().toArray()
       res.send(result)
     })
@@ -123,8 +135,8 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/approve/class', async(req, res)=>{
-      const query = {status: 'Approve'}
+    app.get('/approve/class', async (req, res) => {
+      const query = { status: 'Approve' }
       const result = await classCollection.find(query).toArray()
       res.send(result)
     })
@@ -145,9 +157,9 @@ async function run() {
 
     // get a class by instructor to update single class
 
-    app.get('/dashboard/updateClass/:id', async(req, res)=>{
+    app.get('/dashboard/updateClass/:id', async (req, res) => {
       const id = req.params.id
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await classCollection.findOne(query)
       res.send(result)
     })
@@ -178,16 +190,7 @@ async function run() {
 
 
 
-    const verifyAdmin = async (req, res, next) => {
-      const email = req.decoded.email
-      const query = { email: email }
-      const user = await userCollection.findOne(query)
-      if (user?.role !== 'Admin') {
-        return res.status(403).send({ error: true, message: 'access forbidden' })
-      }
 
-      next()
-    }
 
 
     // admin api
@@ -271,35 +274,35 @@ async function run() {
 
     })
 
-    app.post('/payments', verifyJwt, async(req, res)=>{
+    app.post('/payments', verifyJwt, async (req, res) => {
       const payments = req.body
       const insertResult = await paymentsCollection.insertOne(payments)
 
-      const query = {_id :{ $in: payments.favClassId.map(id=>new ObjectId(id))}}
+      const query = { _id: { $in: payments.favClassId.map(id => new ObjectId(id)) } }
       const deleteResult = await studentsCollection.deleteMany(query)
 
-      res.send({insertResult, deleteResult})
+      res.send({ insertResult, deleteResult })
     })
 
-    app.post('/payments/success', verifyJwt, async(req, res)=>{
+    app.post('/payments/success', verifyJwt, async (req, res) => {
       const payments = req.body
       const insertOne = await paymentsSuccessCollection.insertOne(payments)
       res.send(insertOne)
     })
 
-    app.get('/paySuccess/class/:email', async(req, res)=>{
+    app.get('/paySuccess/class/:email', async (req, res) => {
       const email = req.params.email
 
-      const query = {email: email}
+      const query = { email: email }
       const result = await paymentsSuccessCollection.find(query).toArray()
       res.send(result)
-    } )
+    })
 
-    app.get('/paySuccess/AllClass', async(req, res)=>{
+    app.get('/paySuccess/AllClass', async (req, res) => {
 
-      const result = await paymentsSuccessCollection.find().sort({date: -1}).toArray()
+      const result = await paymentsSuccessCollection.find().sort({ date: -1 }).toArray()
       res.send(result)
-    } )
+    })
 
 
 

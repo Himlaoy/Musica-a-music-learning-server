@@ -243,10 +243,10 @@ async function run() {
     })
 
     // get selected class
-    app.get('/student/favClass/:email', async (req, res) => {
-      const email = req.params.email
-      const query = { email: email }
-      const result = await studentsCollection.find(query).toArray()
+    app.get('/student/favClass/:id', async (req, res) => {
+      const id = req.params.id
+      const query = { _id: new ObjectId(id)}
+      const result = await studentsCollection.findOne(query).toArray()
       res.send(result)
     })
 

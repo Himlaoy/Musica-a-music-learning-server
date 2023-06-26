@@ -253,7 +253,7 @@ async function run() {
     app.get('/dashboard/payment/:id', async (req, res) => {
       const id = req.params.id
       const query = { _id: new ObjectId(id)}
-      const result = await studentsCollection.findOne(query).toArray()
+      const result = await studentsCollection.findOne(query)
       res.send(result)
     })
 

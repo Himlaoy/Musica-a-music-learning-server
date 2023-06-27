@@ -283,10 +283,12 @@ async function run() {
 
     app.post('/payments', verifyJwt, async (req, res) => {
       const payments = req.body
+      const id = payments.favClassId
       const insertResult = await paymentsCollection.insertOne(payments)
 
-      const query = { _id: { $in: payments.favClassId.map(id => new ObjectId(id)) } }
-      const deleteResult = await studentsCollection.deleteMany(query)
+      // const query = { _id: { $in: payments.favClassId.map(id => new ObjectId(id)) } }
+      const query = {_id: new ObjectId(id)}
+      const deleteResult = await studentsCollection.deleteOne(query)
 
       res.send({ insertResult, deleteResult })
     })
@@ -305,9 +307,11 @@ async function run() {
       res.send(result)
     })
 
-    app.get('/paySuccess/AllClass', async (req, res) => {
+    app.get('/paySuccess/AllClass/:email', async (req, res) => {
+      const email = req.params.email
+      const query = {email: email}
 
-      const result = await paymentsSuccessCollection.find().sort({ date: -1 }).toArray()
+      const result = await paymentsSuccessCollection.find(query).sort({ date: -1 }).toArray()
       res.send(result)
     })
 

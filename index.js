@@ -137,7 +137,8 @@ async function run() {
 
     app.get('/class/instructor/:email', async (req, res) => {
       const email = req.params.email
-      const query = { email: email}
+      const query = {Instructor_Email : email
+      }
       const result = await classCollection.find(query).toArray()
       res.send(result)
     })
@@ -259,7 +260,7 @@ async function run() {
 
     app.get('/dashboard/payment/:id', async (req, res) => {
       const id = req.params.id
-      const query = { _id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const result = await studentsCollection.findOne(query)
       res.send(result)
     })
@@ -294,7 +295,7 @@ async function run() {
       const insertResult = await paymentsCollection.insertOne(payments)
 
       // const query = { _id: { $in: payments.favClassId.map(id => new ObjectId(id)) } }
-      const query = {_id: new ObjectId(id)}
+      const query = { _id: new ObjectId(id) }
       const deleteResult = await studentsCollection.deleteOne(query)
 
       res.send({ insertResult, deleteResult })
@@ -316,7 +317,7 @@ async function run() {
 
     app.get('/paySuccess/AllClass/:email', async (req, res) => {
       const email = req.params.email
-      const query = {email: email}
+      const query = { email: email }
 
       const result = await paymentsSuccessCollection.find(query).sort({ date: -1 }).toArray()
       res.send(result)

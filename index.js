@@ -135,6 +135,13 @@ async function run() {
       res.send(result)
     })
 
+    app.get('/class/instructor/:email', async (req, res) => {
+      const email = req.params.email
+      const query = { email: email}
+      const result = await classCollection.find(query).toArray()
+      res.send(result)
+    })
+
     app.get('/approve/class', async (req, res) => {
       const query = { status: 'Approve' }
       const result = await classCollection.find(query).toArray()
